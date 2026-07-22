@@ -182,3 +182,4 @@ cython_debug/
 *copy [0-9]*.*
 CodeIt_Implementation_Plan.md
 AGENTS.md
+opencode.json

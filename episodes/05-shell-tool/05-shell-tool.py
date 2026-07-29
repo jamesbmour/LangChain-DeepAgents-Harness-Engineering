@@ -42,6 +42,7 @@ from langchain_core.messages import AIMessage
 
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend
+from langgraph.checkpoint.memory import InMemorySaver
 
 console = Console()
 
@@ -126,6 +127,7 @@ def build_agent(workdir: str | None = None):
             "Be careful: destructive commands (rm -rf, git push -f) can't be undone."
         ),
         backend=backend,
+        checkpointer=InMemorySaver(),
     )
 
 

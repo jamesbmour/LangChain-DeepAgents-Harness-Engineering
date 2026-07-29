@@ -30,13 +30,12 @@ import os
 import sys
 from pathlib import Path
 
-from rich.console import Console
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
-
-from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
+from rich.console import Console
 
 console = Console()
 
@@ -49,7 +48,8 @@ def get_model() -> BaseChatModel:
             raise ValueError("OPENAI_API_KEY required when LLM_PROVIDER=openai.")
         return init_chat_model(model=name, model_provider="openai")
     return init_chat_model(
-        model=name, model_provider="ollama",
+        model=name,
+        model_provider="ollama",
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     )
 
@@ -76,9 +76,9 @@ def resolve_in_workspace(path: str | Path) -> Path:
     root = workspace_root()
     target = (root / path).resolve()
     try:
-        target.relative_to(root)        # raises ValueError if outside root
+        target.relative_to(root)  # raises ValueError if outside root
     except ValueError:
-        raise PathEscapeError(
+        raise PathEscapeError(  # noqa: B904
             f"Path {path!r} resolves outside the workspace ({root}). Refusing."
         )
     return target
@@ -94,10 +94,9 @@ def build_agent(workdir: str | None = None):
     backend = FilesystemBackend(root_dir=str(root), virtual_mode=True)
     return create_deep_agent(
         model=get_model(),
-        tools=[],                       # write_file/read_file/ls/etc. come from the backend
+        tools=[],  # write_file/read_file/ls/etc. come from the backend
         system_prompt=(
-            "You are CodeIt, a coding agent. Use write_file to CREATE new files. "
-            "Use edit_file for changes to existing files. Keep files inside the workspace."
+            "You are CodeIt, a coding agent. Use write_file to CREATE new files. Use edit_file for changes to existing files. Keep files inside the workspace."
         ),
         backend=backend,
     )
@@ -132,7 +131,9 @@ def run(agent, prompt: str, thread_id: str = "default") -> dict:
     try:
         for chunk in agent.stream(
             {"messages": [{"role": "user", "content": prompt}]},
-            config=config, stream_mode="updates", version="v2",
+            config=config,
+            stream_mode="updates",
+            version="v2",
         ):
             _print_event(chunk)
     except Exception as e:
@@ -141,8 +142,7 @@ def run(agent, prompt: str, thread_id: str = "default") -> dict:
 
 
 def main() -> None:
-    prompt = sys.argv[1] if len(sys.argv) > 1 else \
-        "Create main.py with a FastAPI app: GET /hello returns {'msg':'hello'}."
+    prompt = sys.argv[1] if len(sys.argv) > 1 else "Create main.py with a FastAPI app: GET /hello returns {'msg':'hello'}."
     agent = build_agent()
     state = run(agent, prompt)
     last = state["messages"][-1] if state and "messages" in state else None

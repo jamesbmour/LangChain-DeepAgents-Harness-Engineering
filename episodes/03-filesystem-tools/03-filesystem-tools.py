@@ -29,17 +29,17 @@ import os
 import sys
 from pathlib import Path
 
-from rich.console import Console
-from langchain.chat_models import init_chat_model
-from langchain.tools import tool
-from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage
+from deepagents import create_deep_agent
 
 # FilesystemBackend is the Deep Agents backend that provides ls/read_file/
 # write_file/edit_file/glob/grep automatically when attached.
 # Verified: `from deepagents.backends import FilesystemBackend` (deep-agents-core skill).
 from deepagents.backends import FilesystemBackend
-from deepagents import create_deep_agent
+from langchain.chat_models import init_chat_model
+from langchain.tools import tool
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage
+from rich.console import Console
 
 console = Console()
 
@@ -52,7 +52,8 @@ def get_model() -> BaseChatModel:
             raise ValueError("OPENAI_API_KEY required when LLM_PROVIDER=openai.")
         return init_chat_model(model=name, model_provider="openai")
     return init_chat_model(
-        model=name, model_provider="ollama",
+        model=name,
+        model_provider="ollama",
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     )
 
@@ -78,7 +79,7 @@ def read_summary(path: str) -> str:
     lines = text.splitlines()
     if len(lines) <= 50:
         return text
-    return "\n".join(lines[:50]) + f"\n... [truncated, {len(lines)-50} more lines]"
+    return "\n".join(lines[:50]) + f"\n... [truncated, {len(lines) - 50} more lines]"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -94,9 +95,9 @@ def build_agent(workdir: str | None = None):
 
     return create_deep_agent(
         model=get_model(),
-        tools=[read_summary],          # our custom tool alongside the built-ins
+        tools=[read_summary],  # our custom tool alongside the built-ins
         system_prompt="You are CodeIt, a helpful coding assistant. Explore the workspace with ls and read_file.",
-        backend=backend,               # ← ls/read_file/glob/grep appear automatically
+        backend=backend,  # ← ls/read_file/glob/grep appear automatically
     )
 
 
@@ -129,7 +130,9 @@ def run(agent, prompt: str, thread_id: str = "default") -> dict:
     try:
         for chunk in agent.stream(
             {"messages": [{"role": "user", "content": prompt}]},
-            config=config, stream_mode="updates", version="v2",
+            config=config,
+            stream_mode="updates",
+            version="v2",
         ):
             _print_event(chunk)
     except Exception as e:

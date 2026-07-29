@@ -36,8 +36,8 @@ from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
-from rich.console import Console
 from langgraph.checkpoint.memory import MemorySaver
+from rich.console import Console
 
 console = Console()
 

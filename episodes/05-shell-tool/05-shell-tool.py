@@ -34,15 +34,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rich.console import Console
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
-
-from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 from langgraph.checkpoint.memory import InMemorySaver
+from rich.console import Console
 
 console = Console()
 

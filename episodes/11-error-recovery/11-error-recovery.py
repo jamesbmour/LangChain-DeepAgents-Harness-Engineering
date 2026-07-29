@@ -27,16 +27,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rich.console import Console
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
-
-from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
+from rich.console import Console
 
 console = Console()
 MAX_OUTPUT_CHARS = 15_000  # ~4k tokens; failure output can be long
@@ -144,13 +143,22 @@ def run_with_approval(agent, prompt: str, thread_id: str = "default") -> dict:
 
 # 4. _detect_test_failure — heuristic scan of final state's tool messages.
 def _detect_test_failure(state: dict) -> str | None:
-    """Inspect agent's final state for a run_tests result that reported failure."""
+    """Inspect agent's final state for a run_tests result that reported failure.
+
+    Only checks the LAST run_tests tool result, not all tool messages, to avoid
+    false positives from earlier failures in the conversation history.
+    """
     if not state: return None
     for msg in reversed(state.get("messages", [])):
         if getattr(msg, "type", "") != "tool": continue
         content = getattr(msg, "content", "") or ""
+        # Only look at the most recent tool result
         if "[exit 1]" in content and ("FAILED" in content or "Error" in content):
             return content
+        # If we hit any tool result that's not a failure, stop scanning
+        if "[exit 0]" in content:
+            return None
+        return None  # First tool message found, not a failure
     return None
 
 # 5. run_with_recovery — plain Python loop AROUND the graph (not a node).

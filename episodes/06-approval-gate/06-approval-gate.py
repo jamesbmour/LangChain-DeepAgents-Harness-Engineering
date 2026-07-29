@@ -32,21 +32,22 @@ import re
 import sys
 from pathlib import Path
 
-from rich.console import Console
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
 
-from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 # MemorySaver = in-process checkpointer. REQUIRED for interrupts — without it
 # Command(resume=...) has nowhere to resume from.
 # Verified: `from langgraph.checkpoint.memory import MemorySaver`.
 from langgraph.checkpoint.memory import MemorySaver
+
 # Command is the LangGraph resume primitive.
 # Verified: `from langgraph.types import Command`.
 from langgraph.types import Command
+from rich.console import Console
 
 console = Console()
 

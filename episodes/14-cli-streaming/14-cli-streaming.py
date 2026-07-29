@@ -28,18 +28,17 @@ import sys
 from pathlib import Path
 
 import typer
-from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
+from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
-
-from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
 
 console = Console()
 app = typer.Typer(help="CodeIt — your terminal coding agent.")

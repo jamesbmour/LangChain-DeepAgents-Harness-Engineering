@@ -12,7 +12,7 @@ Builds on: Episode 1 (get_model, build_agent).
 
 Run:
     LLM_PROVIDER=ollama LLM_MODEL=qwen2.5-coder:7b \
-        python tutorial.py "What time is it? Use your tool."
+        python agentic-loop.py "What time is it? Use your tool."
 
 Requires:
     pip install deepagents langchain-ollama rich
@@ -37,6 +37,7 @@ from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
 from rich.console import Console
+from langgraph.checkpoint.memory import MemorySaver
 
 console = Console()
 
@@ -75,6 +76,7 @@ def build_agent():
         model=get_model(),
         tools=[get_time],
         system_prompt="You are CodeIt, a helpful coding assistant. Use tools when useful.",
+        checkpointer=MemorySaver(),
     )
 
 

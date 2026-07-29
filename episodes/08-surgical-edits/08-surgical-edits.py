@@ -57,7 +57,9 @@ def _workspace_root() -> Path:
 def _resolve_in_workspace(path: str) -> Path:
     """Resolve `path` against the workspace, refusing to escape (Ep 4 helper)."""
     root = _workspace_root()
-    target = (root / path).resolve()
+    # Strip leading slashes so '/big.py' is treated as 'big.py' relative to root
+    clean = path.lstrip('/')
+    target = (root / clean).resolve()
     try:
         target.relative_to(root)
     except ValueError:

@@ -173,7 +173,7 @@ async def _async_main(prompt: str, mcp: bool, skills: bool, approve: bool):
     mcp_tools = await load_mcp_tools() if mcp else []
     skills_paths = ["./skills"] if skills else None
     agent = build_agent(mcp_tools=mcp_tools, skills=skills_paths)
-    if approve:
+    if approve or os.getenv("CODEIT_AUTO_APPROVE", "false").lower() == "true":
         state = run_with_approval(agent, prompt)
         last = state["messages"][-1] if state and "messages" in state else None
         if last:

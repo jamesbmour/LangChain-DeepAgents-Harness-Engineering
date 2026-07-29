@@ -39,6 +39,7 @@ from langchain.chat_models import init_chat_model
 from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage
+from langgraph.checkpoint.memory import MemorySaver
 from rich.console import Console
 
 console = Console()
@@ -98,6 +99,7 @@ def build_agent(workdir: str | None = None):
         tools=[read_summary],  # our custom tool alongside the built-ins
         system_prompt="You are CodeIt, a helpful coding assistant. Explore the workspace with ls and read_file.",
         backend=backend,  # ← ls/read_file/glob/grep appear automatically
+        checkpointer=MemorySaver(),
     )
 
 

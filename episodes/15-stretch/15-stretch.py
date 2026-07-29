@@ -45,6 +45,7 @@ from langchain_core.messages import AIMessage
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
 
 console = Console()
 
@@ -148,16 +149,66 @@ def _print_event(chunk) -> None:
             elif isinstance(msg, AIMessage) and msg.content:
                 console.print(f"[green]assistant:[/green] {msg.content}")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 3b. Risk classification for shell commands (from Ep 6).
+#    classify() LABELS the command; interrupt_on does the actual pausing.
+# ─────────────────────────────────────────────────────────────────────────────
+SAFE_PATTERNS = [r"^\s*ls\b", r"^\s*cat\b", r"^\s*pwd\b", r"^\s*echo\b",
+                 r"^\s*git status\b", r"^\s*git diff\b", r"^\s*pytest\b"]
+DESTRUCTIVE_PATTERNS = [r"rm\s+-rf?\b", r"git\s+push\s+.*-f", r"git\s+reset\s+--hard",
+                        r"\bdd\b", r"\bmkfs\b", r"curl.*\|\s*sh", r"wget.*\|\s*sh"]
 
-def run(agent, prompt: str, thread_id: str = "default") -> dict:
+
+def classify(command: str) -> str:
+    """Return 'safe', 'needs-approval', or 'blocked' for a shell command."""
+    import re
+    if any(re.match(p, command) for p in DESTRUCTIVE_PATTERNS):
+        return "blocked"
+    if any(re.match(p, command) for p in SAFE_PATTERNS):
+        return "safe"
+    return "needs-approval"
+
+
+def _pending_tool_call(state):
+    """Read (name, args) of the tool call the model just requested."""
+    for msg in reversed(getattr(state, "values", {}).get("messages", []) or []):
+        if getattr(msg, "tool_calls", None):
+            return msg.tool_calls[-1]["name"], msg.tool_calls[-1]["args"]
+    return None
+
+
+def run_with_approval(agent, prompt: str, thread_id: str = "default") -> dict:
+    """invoke → if interrupted, await_approval → resume. Loops until done."""
     config = _config(thread_id)
-    try:
-        for chunk in agent.stream({"messages": [{"role": "user", "content": prompt}]},
-                                  config=config, stream_mode="updates", version="v2"):
+    auto = os.getenv("CODEIT_AUTO_APPROVE", "false").lower() == "true"
+    for chunk in agent.stream({"messages": [{"role": "user", "content": prompt}]},
+                              config=config, stream_mode="updates", version="v2"):
+        _print_event(chunk)
+    state = agent.get_state(config)
+    while state.next:  # paused on an interrupt
+        pending = _pending_tool_call(state)
+        if pending is None:
+            console.print("[red]Interrupt with no recognizable tool call — aborting.[/red]")
+            break
+        name, args = pending
+        if auto:
+            console.print("[yellow]--yolo: auto-approving[/yellow]")
+            cmd = Command(resume={"decisions": [{"type": "approve"}]})
+        else:
+            risk = classify(args.get("command", "")) if name == "run_shell" else "needs-approval"
+            color = {"safe": "green", "needs-approval": "yellow", "blocked": "red"}[risk]
+            console.print(f"[{color}]risk: {risk}[/{color}]  tool: {name}  args: {args}")
+            answer = console.input("[bold]Approve? (y/n): [/bold]").strip().lower()
+            if answer == "y":
+                cmd = Command(resume={"decisions": [{"type": "approve"}]})
+            else:
+                cmd = Command(resume={"decisions": [
+                    {"type": "reject", "message": "User denied this action."}
+                ]})
+        for chunk in agent.stream(cmd, config=config, stream_mode="updates", version="v2"):
             _print_event(chunk)
-    except Exception as e:
-        console.print(f"[red]error:[/red] {type(e).__name__}: {e}")
-    return agent.get_state(config).values
+        state = agent.get_state(config)
+    return state.values
 
 
 def main() -> None:
@@ -166,7 +217,7 @@ def main() -> None:
         console.print("[yellow]Tip: set LANGSMITH_TRACING=true to see a trace URL at the end.[/yellow]")
     prompt = sys.argv[1] if len(sys.argv) > 1 else "Run: echo hello"
     agent = build_agent()
-    state = run(agent, prompt)
+    state = run_with_approval(agent, prompt)
     last = state["messages"][-1] if state and "messages" in state else None
     if last:
         print("\n--- final answer ---")

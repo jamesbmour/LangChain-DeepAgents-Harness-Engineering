@@ -1,17 +1,6 @@
 """
 Episode 1 — Your Agent's Brain: One File, Two Providers
 =======================================================
-
-The smallest possible Deep Agent: build a chat model for either Ollama or
-OpenAI (switched by an env var), wrap it in create_deep_agent, and print
-the reply. No tools, no streaming, no filesystem — just prove the brain works.
-
-Run:
-    LLM_PROVIDER=ollama LLM_MODEL=qwen2.5-coder:7b python tutorial.py "Say hello."
-    LLM_PROVIDER=openai  LLM_MODEL=gpt-4o-mini         python tutorial.py "Say hello."
-
-Requires:
-    pip install deepagents langchain-ollama langchain-openai python-dotenv
 """
 
 from __future__ import annotations
@@ -32,6 +21,7 @@ from dotenv import load_dotenv
 # Verified: `from langchain.chat_models import init_chat_model` (langchain>=1.0).
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
+from rich import print
 
 load_dotenv()
 
@@ -52,7 +42,7 @@ def get_settings() -> Settings:
     """Read settings from env, with sensible defaults for local Ollama."""
     return Settings(
         llm_provider=os.getenv("LLM_PROVIDER", "ollama"),
-        llm_model=os.getenv("LLM_MODEL", "qwen2.5-coder:7b"),
+        llm_model=os.getenv("LLM_MODEL", "qwen3.5:2b"),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_base_url=os.getenv("OPENAI_BASE_URL", ""),

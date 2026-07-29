@@ -23,20 +23,20 @@ from __future__ import annotations
 import os
 import sys
 
-from rich.console import Console
-
-# `tool` decorator turns a plain function into a LangChain tool whose
-# docstring becomes the schema description the model sees.
-# Verified: `from langchain.tools import tool` (langchain>=1.0).
-from langchain.tools import tool
-from langchain_core.messages import AIMessage
+from deepagents import create_deep_agent
 
 # Reuse the Episode 1 model factory + settings. In a real codebase these
 # would live in codeit/ package; here we inline a trimmed copy so this file
 # is self-contained.
 from langchain.chat_models import init_chat_model
+
+# `tool` decorator turns a plain function into a LangChain tool whose
+# docstring becomes the schema description the model sees.
+# Verified: `from langchain.tools import tool` (langchain>=1.0).
+from langchain.tools import tool
 from langchain_core.language_models import BaseChatModel
-from deepagents import create_deep_agent
+from langchain_core.messages import AIMessage
+from rich.console import Console
 
 console = Console()
 
@@ -49,7 +49,8 @@ def get_model() -> BaseChatModel:
             raise ValueError("OPENAI_API_KEY required when LLM_PROVIDER=openai.")
         return init_chat_model(model=model_name, model_provider="openai")
     return init_chat_model(
-        model=model_name, model_provider="ollama",
+        model=model_name,
+        model_provider="ollama",
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
     )
 
@@ -62,6 +63,7 @@ def get_model() -> BaseChatModel:
 def get_time() -> str:
     """Return the current time. Use this when the user asks for the time."""
     import datetime
+
     return datetime.datetime.now().isoformat(timespec="seconds")
 
 
@@ -114,7 +116,7 @@ def run(agent, prompt: str, thread_id: str = "default") -> dict:
             {"messages": [{"role": "user", "content": prompt}]},
             config=config,
             stream_mode="updates",
-            version="v2",          # v2 = typed dicts; v1 = bare {node: state}
+            version="v2",  # v2 = typed dicts; v1 = bare {node: state}
         ):
             _print_event(chunk)
     except Exception as e:
